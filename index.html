@@ -1,18 +1,1322 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acesse o OneDrive</title>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>COMPRA DE CIRCUITOS</title>
+<!-- External Resources -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"/>
+<!-- SheetJS para manipulação de Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+function exportarParaExcel() {
+    try {
+        // Preparar os dados para o Excel
+        const dadosExcel = pedidosFinalizados.map(pedido => ({
+            'ID': pedido.id,
+            'Pedido': pedido.texto,
+            'Data Finalização': pedido.dataHora,
+            'Finalizado Por': pedido.usuarioFinalizou,
+            'Código de Barras': '',
+            'Data Atendimento': pedido.horaAtendimento || '',
+            'Atendido Por': pedido.atendente || '',
+            'Tipo': pedido.aba
+        }));
+
+        // Criar uma nova planilha
+        const ws = XLSX.utils.json_to_sheet(dadosExcel);
+
+        // Criar um novo workbook e adicionar a planilha
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Pedidos Finalizados");
+
+        // Gerar arquivo Excel e criar link para download
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+        const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "Pedidos_Finalizados.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert("Arquivo Excel gerado com sucesso para download!");
+    } catch (error) {
+        console.error("Erro ao exportar para Excel:", error);
+        alert("Erro ao exportar os pedidos para o Excel: " + error.message);
+    }
+}
+
+function s2ab(s) {
+    const buf = new ArrayBuffer(s.length);
+    const view = new Uint8Array(buf);
+    for (let i = 0; i < s.length; i++) {
+        view[i] = s.charCodeAt(i) & 0xFF;
+    }
+    return buf;
+}
+
+</script>
+<style>
+        /* ---------- Variables ---------- */
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --success-color: #16a34a;
+            --warning-color: #ca8a04;
+            --danger-color: #dc2626;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-radius: 12px;
+            --transition-speed: 0.3s;
+        }
+
+        /* ---------- Reset & Base Styles ---------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* ---------- Header Styles ---------- */
+        header {
+            background: #000000;
+            color: white;
+            padding: 1.5rem 0;
+            text-align: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            position: absolute;
+            right: 2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: var(--danger-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all var(--transition-speed);
+        }
+
+        .logout-btn:hover {
+            background-color: #991b1b;
+        }
+
+        /* ---------- Layout Styles ---------- */
+        .main-container {
+            max-width: 1800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            gap: 2rem;
+        }
+
+        /* ---------- Sidebar Styles ---------- */
+        .sidebar {
+            background: var(--card-background);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar button {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border: none;
+            border-radius: var(--border-radius);
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .sidebar button:hover {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* ---------- Content Area Styles ---------- */
+        .content {
+            background: var(--card-background);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ---------- Card Styles ---------- */
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform var(--transition-speed);
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card img {
+            width: 100%;
+            height: 120px;
+            object-fit: contain;
+            padding: 0.5rem;
+        }
+
+        .card button {
+            width: 100%;
+            padding: 0.5rem;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color var(--transition-speed);
+        }
+
+        .card button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        /* Continuação dos estilos... */
+
+/* ---------- Cart & List Styles ---------- */
+        .cart-sidebar {
+            background: var(--card-background);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+
+        .cart-sidebar h3 {
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--background-color);
+        }
+
+        .cart-total {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid var(--background-color);
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+        }
+
+        .pedido-list {
+            list-style: none;
+            margin: 1.5rem 0;
+        }
+
+        .pedido-list li {
+            background-color: var(--background-color);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: var(--border-radius);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: transform var(--transition-speed);
+        }
+
+        .pedido-list li:hover {
+            transform: translateX(5px);
+        }
+
+        .pedido-list li button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--danger-color);
+            transition: color var(--transition-speed);
+        }
+
+        .pedido-list li button:hover {
+            color: #991b1b;
+        }
+
+        .pedido-list li small {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .pedido-list li div {
+            flex: 1;
+        }
+
+        /* ---------- Filter & Status Styles ---------- */
+        .filter-buttons {
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-buttons button {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--primary-color);
+            border-radius: var(--border-radius);
+            background-color: white;
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .filter-buttons button:hover,
+        .filter-buttons button.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .nao-atendido {
+            border-left: 4px solid var(--warning-color) !important;
+            background-color: #fff8e5 !important;
+        }
+
+        .atendido-btn {
+            background-color: var(--success-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .atendido-btn:disabled {
+            background-color: var(--warning-color);
+            cursor: not-allowed;
+        }
+
+        .atendido-btn.atendido-registrado {
+            background-color: var(--text-secondary) !important;
+            cursor: not-allowed !important;
+        }
+
+        /* ---------- Login Styles ---------- */
+        .login-container {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: black; /* Fundo preto */
+}
+
+.login-form {
+    background: white; /* Fundo branco */
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 100%;
+    border: 2px solid red; /* Borda vermelha */
+}
+
+.login-form h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: red; /* Título em vermelho */
+    font-size: 1.8rem;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid black; /* Borda preta */
+    border-radius: 5px;
+    font-size: 1rem;
+    background: #f9f9f9; /* Fundo leve */
+}
+
+.login-form input:focus {
+    outline: none;
+    border: 2px solid red; /* Destaque em vermelho */
+}
+
+.login-form button {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: bold;
+    background: red; /* Botão vermelho */
+    color: white; /* Texto branco */
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.login-form button:hover {
+    background: black; /* Troca para preto no hover */
+    color: red; /* Texto em vermelho no hover */
+}
+
+        .login-form {
+            background: var(--card-background);
+            padding: 2.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-form h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--text-primary);
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: border-color var(--transition-speed);
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        /* ---------- Responsive Styles ---------- */
+        @media (max-width: 1200px) {
+            .main-container {
+                grid-template-columns: 250px 1fr;
+            }
+            .cart-sidebar {
+                grid-column: 1 / -1;
+                position: relative;
+                top: 0;
+            }
+            .card-container {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }
+            .logout-btn {
+                right: 1rem;
+            }
+            .card-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ---------- Utility Classes ---------- */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ---------- Excel Integration Feedback ---------- */
+        .excel-feedback {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            background-color: var(--success-color);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: none;
+            z-index: 1000;
+        }
+
+        .excel-feedback.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
+<!-- Continuação do HTML... -->
 <body>
-    <h1>Bem-vindo!</h1>
-    <p>Para acessar o OneDrive, clique no link abaixo:</p>
-    <p>
-        <a href="https://onedrive.live.com/?authkey=%21APih%5F%5FIBX9s8R8E&id=2B0ED2869731A26B%21116&cid=2B0ED2869731A26B" target="_blank">
-            Acesse o OneDrive
-        </a>
-    </p>
-    <p>Para abrir em uma janela anônima, clique com o botão direito do mouse e escolha "Abrir link em uma nova janela anônima".</p>
+<!-- Feedback da integração com Excel -->
+<div class="excel-feedback" id="excelFeedback">
+        Pedidos salvos com sucesso no Excel!
+    </div>
+<!-- Login Screen -->
+<div class="login-container" id="loginScreen">
+
+<div class="login-form">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/3/3a/Yazaki_company_logo.svg" alt="Logo" style="display: block; margin: 0 auto 40px; width: 200px; height: auto;"/>
+
+<h2>Login</h2>
+<input autocomplete="off" id="username" placeholder="Usuário" type="text"/>
+<input id="password" placeholder="Senha" type="password"/>
+<button onclick="login()">Entrar</button>
+</div>
+</div>
+<!-- Main Application -->
+<div id="appContent" style="display: none;">
+
+<header>
+<img src="https://i.im.ge/2025/01/08/zJoplf.getsitelogo.png" alt="Logo" style="position: absolute; top: 10px; left: 10px; width: 150px; height: auto;"/>
+
+<h1>Compra de Circuitos</h1>
+<button class="logout-btn" onclick="logout()">
+<i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+</header>
+<div class="main-container">
+<!-- Sidebar Navigation -->
+<div class="sidebar">
+<button class="tab-btn" onclick="showTab('finalizados')">
+<i class="fas fa-check-circle"></i> Pedidos Finalizados
+                </button>
+<button class="tab-btn" onclick="showTab('IP551')">
+                    IP 551
+                </button>
+<button class="tab-btn" onclick="showTab('BODY551')">
+                    BODY 551
+                </button>
+<button class="tab-btn" onclick="showTab('COMPLEMENTAR551')">
+                    COMPL 551
+                </button>
+<button class="tab-btn" onclick="showTab('IP226')">
+                    IP 226
+                </button>
+<button class="tab-btn" onclick="showTab('BODY226')">
+                    BODY 226
+                </button>
+<button class="tab-btn" onclick="showTab('SUPLEMENTAR226')">
+                    SUPL 226
+                </button>
+<button class="tab-btn" onclick="showTab('IP598')">
+                    IP 598
+                </button>
+<button class="tab-btn" onclick="showTab('BODY598')">
+                    BODY 598
+                </button>
+<button class="tab-btn" onclick="showTab('COMPLEMENTAR598')">
+                    COMPL 598
+                </button>
+<button class="tab-btn" onclick="showTab('IP291')">
+                    IP 291
+                </button>
+<button class="tab-btn" onclick="showTab('BODY291')">
+                    BODY 291
+                </button>
+<button class="tab-btn" onclick="showTab('SUPLEMENTAR291')">
+                    SUPL 291
+                </button>
+</div>
+<!-- Content Area -->
+<div class="content">
+<!-- Finalizados Tab -->
+<div class="tab-content" id="finalizados">
+<h3>Pedidos Finalizados</h3>
+<div style="margin-top: 1rem;">
+    <button onclick="exportarParaExcel()" style="padding: 0.5rem 1rem; background-color: var(--success-color); color: white; border: none; border-radius: var(--border-radius); cursor: pointer;">
+        <i class="fas fa-file-excel"></i> Exportar para Excel
+    </button>
+</div>
+
+<div style="margin-top: 1rem;">
+    <button onclick="imprimirPedidosNaoAtendidos()" style="padding: 0.5rem 1rem; background-color: var(--primary-color); color: white; border: none; border-radius: var(--border-radius); cursor: pointer;">
+        <i class="fas fa-print"></i> Imprimir Não Atendidos
+    </button>
+</div>
+
+<div class="filter-buttons">
+<button class="active" onclick="aplicarFiltroFinalizados(null)">Todos</button>
+<button onclick="aplicarFiltroFinalizados('IP551')">IP 551</button>
+<button onclick="aplicarFiltroFinalizados('BODY551')">BODY 551</button>
+<button onclick="aplicarFiltroFinalizados('COMPLEMENTAR551')">COMPL 551</button>
+<button onclick="aplicarFiltroFinalizados('IP226')">IP 226</button>
+<button onclick="aplicarFiltroFinalizados('BODY226')">BODY 226</button>
+<button onclick="aplicarFiltroFinalizados('SUPLEMENTAR226')">SUPL 226</button>
+<button onclick="aplicarFiltroFinalizados('IP598')">IP 598</button>
+<button onclick="aplicarFiltroFinalizados('BODY598')">BODY 598</button>
+<button onclick="aplicarFiltroFinalizados('COMPLEMENTAR598')">COMPL 598</button>
+<button onclick="aplicarFiltroFinalizados('IP291')">IP 291</button>
+<button onclick="aplicarFiltroFinalizados('BODY291')">BODY 291</button>
+<button onclick="aplicarFiltroFinalizados('SUPL291')">SUPL 291</button>
+</div>
+<ul class="pedido-list" id="pedidoListFinalizados"></ul>
+</div>
+<!-- IP551 Tab -->
+<div class="tab-content" id="IP551">
+<div class="barcode-input">
+<input id="barcodeInputIP551" oninput="buscarPorCodigoBarras('IP551')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;">
+<div class="card">
+<img alt="ps1-c01" src="IP 551/ps1-c01.png"/>
+<button onclick="adicionarAoPedido('IP551 : ps1-c01')">
+<i class="fas fa-plus"></i> Adicionar ao Pedido
+                            </button>
+</div>
+<div class="card">
+<img alt="ps1-c03" src="IP 551/ps1-c03.png"/>
+<button onclick="adicionarAoPedido('IP551 : ps1-c031')">
+<i class="fas fa-plus"></i> Adicionar ao Pedido
+                            </button>
+</div>
+</div>
+<h3>Pedidos Atendidos - IP 551</h3>
+<ul class="pedido-list" id="pedidoListAtendidosIP551"></ul>
+</div>
+<!-- BODY551 Tab -->
+<div class="tab-content" id="BODY551">
+<div class="barcode-input">
+<input id="barcodeInputBODY551" oninput="buscarPorCodigoBarras('BODY551')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;">
+<div class="card">
+<img alt="ps1-c01" src="IP 551/ps1-c01.png"/>
+<button onclick="adicionarAoPedido('BODY551 : ps1-c01')">
+<i class="fas fa-plus"></i> Adicionar ao Pedido
+                            </button>
+</div>
+</div>
+<h3>Pedidos Atendidos - BODY 551</h3>
+<ul class="pedido-list" id="pedidoListAtendidosBODY551"></ul>
+</div>
+<!-- IP 226 Tab -->
+<div class="tab-content" id="IP226">
+<div class="barcode-input">
+<input id="barcodeInputIP226" oninput="buscarPorCodigoBarras('IP226')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - IP 226</h3>
+<ul class="pedido-list" id="pedidoListAtendidosIP226"></ul>
+</div>
+<!-- BODY 226 Tab -->
+<div class="tab-content" id="BODY226">
+<div class="barcode-input">
+<input id="barcodeInputBODY226" oninput="buscarPorCodigoBarras('BODY226')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - BODY 226</h3>
+<ul class="pedido-list" id="pedidoListAtendidosBODY226"></ul>
+</div>
+<!-- SUPL 226 Tab -->
+<div class="tab-content" id="SUPLEMENTAR226">
+<div class="barcode-input">
+<input id="barcodeInputSUPLEMENTAR226" oninput="buscarPorCodigoBarras('SUPLEMENTAR226')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - SUPL 226</h3>
+<ul class="pedido-list" id="pedidoListAtendidosSUPLEMENTAR226"></ul>
+</div>
+<!-- IP 598 Tab -->
+<div class="tab-content" id="IP598">
+<div class="barcode-input">
+<input id="barcodeInputIP598" oninput="buscarPorCodigoBarras('IP598')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - IP 598</h3>
+<ul class="pedido-list" id="pedidoListAtendidosIP598"></ul>
+</div>
+<!-- BODY 598 Tab -->
+<div class="tab-content" id="BODY598">
+<div class="barcode-input">
+<input id="barcodeInputBODY598" oninput="buscarPorCodigoBarras('BODY598')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - BODY 598</h3>
+<ul class="pedido-list" id="pedidoListAtendidosBODY598"></ul>
+</div>
+<!-- COMPL 598 Tab -->
+<div class="tab-content" id="COMPLEMENTAR598">
+<div class="barcode-input">
+<input id="barcodeInputCOMPLEMENTAR598" oninput="buscarPorCodigoBarras('COMPLEMENTAR598')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - COMPL 598</h3>
+<ul class="pedido-list" id="pedidoListAtendidosCOMPLEMENTAR598"></ul>
+</div>
+<!-- IP 291 Tab -->
+<div class="tab-content" id="IP291">
+<div class="barcode-input">
+<input id="barcodeInputIP291" oninput="buscarPorCodigoBarras('IP291')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - IP 291</h3>
+<ul class="pedido-list" id="pedidoListAtendidosIP291"></ul>
+</div>
+<!-- BODY 291 Tab -->
+<div class="tab-content" id="BODY291">
+<div class="barcode-input">
+<input id="barcodeInputBODY291" oninput="buscarPorCodigoBarras('BODY291')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - BODY 291</h3>
+<ul class="pedido-list" id="pedidoListAtendidosBODY291"></ul>
+</div>
+<!-- SUPL 291 Tab -->
+<div class="tab-content" id="SUPLEMENTAR291">
+<div class="barcode-input">
+<input id="barcodeInputSUPLEMENTAR291" oninput="buscarPorCodigoBarras('SUPLEMENTAR291')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - SUPL 291</h3>
+<ul class="pedido-list" id="pedidoListAtendidosSUPLEMENTAR291"></ul>
+</div>
+<!-- COMPLEMENTAR551 Tab -->
+<div class="tab-content" id="COMPLEMENTAR551">
+<div class="barcode-input">
+<input id="barcodeInputCOMPLEMENTAR551" oninput="buscarPorCodigoBarras('COMPLEMENTAR551')" placeholder="Leia o Código de Barras" type="text"/>
+</div>
+<div class="card-container" style="display: none;"></div>
+<h3>Pedidos Atendidos - COMPL 551</h3>
+<ul class="pedido-list" id="pedidoListAtendidosCOMPLEMENTAR551"></ul>
+</div>
+</div>
+<!-- Cart Sidebar -->
+<div class="cart-sidebar" style="opacity: 0; pointer-events: none;">
+<h3><i class="fas fa-shopping-cart"></i> Itens Selecionados</h3>
+<ul class="pedido-list" id="pedidoListIP551"></ul>
+<ul class="pedido-list" id="pedidoListBODY551"></ul>
+<ul class="pedido-list" id="pedidoListCOMPLEMENTAR551"></ul>
+<ul class="pedido-list" id="pedidoListIP226"></ul>
+<ul class="pedido-list" id="pedidoListBODY226"></ul>
+<ul class="pedido-list" id="pedidoListSUPLEMENTAR226"></ul>
+<ul class="pedido-list" id="pedidoListIP598"></ul>
+<ul class="pedido-list" id="pedidoListBODY598"></ul>
+<ul class="pedido-list" id="pedidoListCOMPLEMENTAR598"></ul>
+<ul class="pedido-list" id="pedidoListIP291"></ul>
+<ul class="pedido-list" id="pedidoListBODY291"></ul>
+<ul class="pedido-list" id="pedidoListSUPL291"></ul>
+<div class="cart-total">
+<span>Total de itens:</span>
+<span id="totalItems">0</span>
+</div>
+<button class="finalizar-btn" onclick="finalizarPedido(document.querySelector('.tab-content.active').id)" style="width: 100%; margin-top: 1rem;">
+<i class="fas fa-check"></i> Finalizar Pedido
+                </button>
+</div>
+</div>
+</div>
+<!-- JavaScript -->
+<script>
+    // Função para processar automaticamente o código de barras
+    function processarCodigoDeBarras() {
+    const activeTabId = document.querySelector('.tab-content.active')?.id;
+    if (!activeTabId) {
+        alert("Nenhuma aba ativa para processar o código de barras.");
+        return;
+    }
+
+    const barcodeInput = document.getElementById(`barcodeInput${activeTabId}`);
+    if (!barcodeInput) return;
+
+    barcodeInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') { // Verifica se a tecla pressionada é "Enter"
+            const codigoBarra = barcodeInput.value.trim();
+            if (!codigoBarra) return;
+
+            adicionarAoPedido(`${activeTabId} : ${codigoBarra}`);
+            finalizarPedido(activeTabId); // Finaliza o pedido ao pressionar Enter
+            barcodeInput.value = '';
+        }
+    });
+}
+
+
+    document.querySelectorAll('.barcode-input input').forEach(input => {
+        input.addEventListener('input', () => {
+            if (input.value.trim()) {
+                processarCodigoDeBarras();
+            }
+        });
+    });
+    
+        // ---------- Global Variables ----------
+        let usuarioLogado = '';
+        let pedidoSequencial = 1;
+        let idFinalizado = 1;
+        let pedidosFinalizados = [];
+        let pedidosAtendidos = {
+            "IP551": [],
+            "BODY551": [],
+            "IP226": [],
+            "BODY226": [],
+            "SUPLEMENTAR226": [],
+            "IP598": [],
+            "BODY598": [],
+            "COMPLEMENTAR598": [],
+            "IP291": [],
+	    "BODY291": [],
+            "SUPLEMENTAR291": [],
+            "COMPLEMENTAR551[": []
+        };
+        let filtroAtual = null;
+
+        // ---------- Excel Integration Functions ----------
+        async function mostrarFeedbackExcel() {
+            const feedback = document.getElementById('excelFeedback');
+            feedback.classList.add('show');
+            setTimeout(() => {
+                feedback.classList.remove('show');
+            }, 3000);
+        }
+
+// Variável global para armazenar a referência do arquivo
+let excelFileHandle = null;
+
+// Função para selecionar o arquivo Excel
+async function selecionarArquivoExcel() {
+    try {
+        // Pedir ao usuário para selecionar o arquivo
+        [excelFileHandle] = await window.showOpenFilePicker({
+            types: [{
+                description: 'Excel Files',
+                accept: {
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+                }
+            }],
+            multiple: false
+        });
+        return true;
+    } catch (error) {
+        console.error('Erro ao selecionar arquivo:', error);
+        return false;
+    }
+}
+
+async function salvarPedidosExcel() {
+    try {
+        // Se não temos uma referência do arquivo, pedir para selecionar
+        if (!excelFileHandle) {
+            const selecionou = await selecionarArquivoExcel();
+            if (!selecionou) {
+                throw new Error('Nenhum arquivo selecionado');
+            }
+        }
+
+        // Preparar os dados para o Excel
+        const dadosExcel = pedidosFinalizados.map(pedido => ({
+            'ID': pedido.id,
+            'Pedido': pedido.texto,
+            'Data Finalização': pedido.dataHora,
+            'Finalizado Por': pedido.usuarioFinalizou,
+            'Código de Barras': '',
+            'Data Atendimento': pedido.horaAtendimento || '',
+            'Atendido Por': pedido.atendente || '',
+            'Tipo': pedido.aba
+        }));
+
+        // Criar uma nova planilha
+        const ws = XLSX.utils.json_to_sheet(dadosExcel);
+
+        // Definir larguras das colunas
+        const wscols = [
+            {wch: 5},  // ID
+            {wch: 30}, // Pedido
+            {wch: 20}, // Data Finalização
+            {wch: 15}, // Finalizado Por
+            {wch: 15}, // Código de Barras
+            {wch: 20}, // Data Atendimento
+            {wch: 15}, // Atendido Por
+            {wch: 10}  // Tipo
+        ];
+        ws['!cols'] = wscols;
+
+        // Criar um novo workbook e adicionar a planilha
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Pedidos Finalizados");
+
+        // Converter para buffer
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+
+        // Converter string binária para ArrayBuffer
+        const buf = new ArrayBuffer(wbout.length);
+        const view = new Uint8Array(buf);
+        for (let i = 0; i < wbout.length; i++) {
+            view[i] = wbout.charCodeAt(i) & 0xFF;
+        }
+
+        // Criar um objeto Blob
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+        // Obter um writableStream para o arquivo
+        const writable = await excelFileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+
+        await mostrarFeedbackExcel();
+        console.log('Arquivo Excel salvo com sucesso!');
+    } catch (error) {
+        console.error('Erro ao salvar arquivo Excel:', error);
+        alert('Erro ao salvar os pedidos no Excel: ' + error.message);
+    }
+}
+
+        // Continuação do JavaScript...
+// ---------- User Authentication ----------
+        const usuarios = [
+            { username: 'lucas', password: '1234' },
+            { username: 'usuario1', password: 'senha1' },
+            { username: 'usuario2', password: 'senha2' },
+            { username: 'usuario3', password: 'senha3' },
+            { username: 'usuario4', password: 'senha4' },
+        ];
+
+        window.login = function login() {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+
+  const usuarioValido = usuarios.find(user => user.username === username && user.password === password);
+
+  if (usuarioValido) {
+    usuarioLogado = username;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContent').style.display = 'block';
+    showTab('finalizados');
+  } else {
+    alert('Usuário ou senha inválidos!');
+  }
+};
+
+        function logout() {
+            usuarioLogado = '';
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('appContent').style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function restritoAoAtendimento() {
+            const addButtons = document.querySelectorAll('.card button');
+            addButtons.forEach(button => {
+                button.disabled = true;
+            });
+
+            const tabs = document.querySelectorAll('.sidebar button');
+            tabs.forEach(tab => {
+                if (!tab.innerText.includes('Pedidos Finalizados')) {
+                    tab.disabled = true;
+                }
+            });
+
+            const cardContainers = document.querySelectorAll('.card-container');
+            cardContainers.forEach(container => {
+                container.style.display = 'none';
+            });
+
+            const barcodeInputs = document.querySelectorAll('.barcode-input');
+            barcodeInputs.forEach(input => {
+                input.style.display = 'none';
+            });
+        }
+
+        // ---------- Tab Management ----------
+        function showTab(tabId) {
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            
+            if (tabId === 'finalizados') {
+                renderizarPedidosFinalizados();
+            } else {
+                renderizarPedidosAtendidos(tabId);
+            }
+        }
+
+        // ---------- Cart Management ----------
+        function adicionarAoPedido(item) {
+            const tabId = document.querySelector('.tab-content.active').id;
+            const pedidoList = document.getElementById(`pedidoList${tabId}`);
+            const li = document.createElement('li');
+            li.id = `pedido-${pedidoSequencial}`;
+            li.innerHTML = `    
+                <span>${pedidoSequencial}: ${item}</span>
+                <button onclick="removerItemPedido('${li.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            pedidoList.appendChild(li);
+            pedidoSequencial++;
+            atualizarTotalItems();
+        }
+
+        function removerItemPedido(id) {
+            document.getElementById(id).remove();
+            atualizarTotalItems();
+        }
+
+        function atualizarTotalItems() {
+            const totalItems = document.querySelectorAll('.pedido-list li').length;
+            document.getElementById('totalItems').textContent = totalItems;
+        }
+
+        // ---------- Gestão dos Filtros ----------
+        function aplicarFiltroFinalizados(filtro) {
+            const buttons = document.querySelectorAll('.filter-buttons button');
+            buttons.forEach(button => {
+                button.classList.remove('active');
+                if ((filtro === null && button.textContent === 'Todos') ||
+                    (filtro && button.textContent.includes(filtro))) {
+                    button.classList.add('active');
+                }
+            });
+
+            filtroAtual = filtro;
+            renderizarPedidosFinalizados();
+        }
+
+        // ---------- Gestão dos Pedidos ----------
+        async function finalizarPedido(tabId) {
+            const pedidoList = document.getElementById(`pedidoList${tabId}`);
+            const pedidos = Array.from(pedidoList.children);
+            const dataHora = new Date().toLocaleString();
+
+            pedidos.forEach(pedido => {
+                const texto = pedido.querySelector('span').textContent;
+                pedidosFinalizados.push({
+                    id: idFinalizado,
+                    texto,
+                    dataHora,
+                    usuarioFinalizou: usuarioLogado,
+                    atendente: null,
+                    horaAtendimento: null,
+                    aba: tabId
+                });
+                idFinalizado++;
+            });
+
+            pedidoList.innerHTML = '';
+            document.getElementById('totalItems').textContent = '0';
+            renderizarPedidosFinalizados();
+            
+            // Salvar no Excel após finalizar o pedido
+            
+        }
+
+        function renderizarPedidosFinalizados() {
+            const pedidoListFinalizados = document.getElementById('pedidoListFinalizados');
+            pedidoListFinalizados.innerHTML = '';
+
+            let pedidosFiltrados = [...pedidosFinalizados];
+            if (filtroAtual) {
+                pedidosFiltrados = pedidosFiltrados.filter(pedido => pedido.aba === filtroAtual);
+            }
+
+            pedidosFiltrados.sort((a, b) => {
+                if (a.horaAtendimento === null && b.horaAtendimento !== null) return -1;
+                if (a.horaAtendimento !== null && b.horaAtendimento === null) return 1;
+                return b.id - a.id;
+            });
+
+            pedidosFiltrados.forEach(pedido => {
+                const li = document.createElement('li');
+                li.id = `pedidoFinalizado-${pedido.id}`;
+                const isAtendido = pedido.horaAtendimento !== null;
+                
+                if (!isAtendido) {
+                    li.classList.add('nao-atendido');
+                }
+                
+                li.innerHTML = `
+                    <div>
+                        <strong>#${pedido.id}</strong> - ${pedido.texto}
+                        <br>
+                        <small>
+                            Finalizado em: ${pedido.dataHora}
+                            <br>
+                            Finalizado por: ${pedido.usuarioFinalizou}
+                            ${isAtendido ? `<br>Atendido em: ${pedido.horaAtendimento}<br>Atendido por: ${pedido.atendente}` : ''}
+                        </small>
+                    </div>
+                    <div class="actions">
+                        
+                        <button ' : ''}" 
+                                id="atendido-btn-${pedido.id}" 
+                                onclick="registrarAtendimento(${pedido.id})" 
+                            <i class="fas fa-check"></i> ${isAtendido ? 'Atendido' : 'Atender'}
+                        </button>
+                    </div>
+                `;
+                pedidoListFinalizados.appendChild(li);
+            });
+        }
+
+        function renderizarPedidosAtendidos(tabId) {
+            const pedidosAtendidosList = document.getElementById(`pedidoListAtendidos${tabId}`);
+            if (!pedidosAtendidosList) return;
+            
+            pedidosAtendidosList.innerHTML = '';
+            pedidosAtendidos[tabId].forEach(pedido => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div>
+                        <strong>#${pedido.id}</strong> - ${pedido.texto}
+                        <small>
+                            Atendido em: ${pedido.horaAtendimento}
+                            <br>
+                            Atendido por: ${pedido.atendente}
+                        </small>
+                    </div>
+                `;
+                pedidosAtendidosList.appendChild(li);
+            });
+        }
+
+        // ---------- Code Management ----------
+        function atualizarCodigoBarra(id) {
+            const codigoInput = document.getElementById(`codigoBarra-${id}`);
+            const atendidoBtn = document.getElementById(`atendido-btn-${id}`);
+            
+            const pedido = pedidosFinalizados.find(pedido => pedido.id === id);
+            
+
+            pedido.codigoBarra = codigoInput.value;
+            atendidoBtn.disabled = !codigoInput.value;
+        }
+
+        
+    async function registrarAtendimento(id) {
+        const pedido = pedidosFinalizados.find(pedido => pedido.id === id);
+        
+
+        // Atualizar os dados do pedido
+        pedido.horaAtendimento = new Date().toLocaleString();
+        pedido.atendente = usuarioLogado;
+        pedidosAtendidos[pedido.aba].push(pedido);
+
+        // Renderizar novamente os pedidos finalizados e atendidos
+        renderizarPedidosFinalizados();
+        renderizarPedidosAtendidos(pedido.aba);
+
+        // Reproduzir som, se necessário
+        reproduzirSom(pedido.aba);
+
+        // Atualizar o Excel para refletir as mudanças
+        
+    }
+    
+
+        
+        // Função para reproduzir som ao atender um pedido específico
+        function reproduzirSom(tabId) {
+            let audioFile;
+            if (tabId === "BODY551") {
+                audioFile = "Audios/BODY551.mp3";
+            } else if (tabId === "IP551") {
+                audioFile = "Audios/IP551.mp3";
+            } else if (tabId === "COMPLEMENTAR551") {
+                audioFile = "Audios/COMPL551.mp3";
+            } else {
+                console.warn("Nenhum áudio encontrado para a aba:", tabId);
+                return;
+            }
+
+            const audio = new Audio(audioFile);
+            audio.play();
+        }
+
+        
+    async function registrarAtendimento(id) {
+        const pedido = pedidosFinalizados.find(pedido => pedido.id === id);
+        
+
+        // Atualizar os dados do pedido
+        pedido.horaAtendimento = new Date().toLocaleString();
+        pedido.atendente = usuarioLogado;
+        pedidosAtendidos[pedido.aba].push(pedido);
+
+        // Renderizar novamente os pedidos finalizados e atendidos
+        renderizarPedidosFinalizados();
+        renderizarPedidosAtendidos(pedido.aba);
+
+        // Reproduzir som, se necessário
+        reproduzirSom(pedido.aba);
+
+        // Atualizar o Excel para refletir as mudanças
+        
+    }
+    
+
+        // ---------- Barcode Scanner ----------
+        function buscarPorCodigoBarras(tabId) {
+            const input = document.getElementById(`barcodeInput${tabId}`).value.trim();
+            if (!input) return;
+
+            const cardContainers = document.querySelectorAll(`#${tabId} .card`);
+            
+
+            cardContainers.forEach(card => {
+                const imgAlt = card.querySelector('img').alt;
+                if (imgAlt === input) {
+                    adicionarAoPedido(`${tabId} : ${imgAlt}`);
+                    itemEncontrado = true;
+                    alert(`Item ${imgAlt} adicionado ao pedido.`);
+                    document.getElementById(`barcodeInput${tabId}`).value = '';
+                }
+            });
+
+            if (!itemEncontrado) {
+                alert('Item não encontrado.');
+            }
+        }
+
+        
+        // Função para imprimir os pedidos não atendidos com base no filtro
+        function imprimirPedidosNaoAtendidos() {
+            const pedidosNaoAtendidos = pedidosFinalizados.filter(pedido => 
+                pedido.horaAtendimento === null && 
+                (!filtroAtual || pedido.aba === filtroAtual)
+            );
+
+            if (pedidosNaoAtendidos.length === 0) {
+                alert("Nenhum pedido não atendido para imprimir com o filtro atual.");
+                return;
+            }
+
+            let printContent = `<h3>Pedidos Não Atendidos (${filtroAtual || "Todos"})</h3><ul>`;
+            pedidosNaoAtendidos.forEach(pedido => {
+                printContent += `<li>#${pedido.id} - ${pedido.texto} (Finalizado em: ${pedido.dataHora}, por: ${pedido.usuarioFinalizou})</li>`;
+            });
+            printContent += "</ul>";
+
+            const printWindow = window.open("", "_blank");
+            printWindow.document.write("<html><head><title>Pedidos Não Atendidos</title></head><body>");
+            printWindow.document.write(printContent);
+            printWindow.document.write("</body></html>");
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            showTab('finalizados');
+        });
+    
+function exportarParaExcel() {
+    try {
+        // Preparar os dados para o Excel
+        const dadosExcel = pedidosFinalizados.map(pedido => ({
+            'ID': pedido.id,
+            'Pedido': pedido.texto,
+            'Data Finalização': pedido.dataHora,
+            'Finalizado Por': pedido.usuarioFinalizou,
+            'Código de Barras': '',
+            'Data Atendimento': pedido.horaAtendimento || '',
+            'Atendido Por': pedido.atendente || '',
+            'Tipo': pedido.aba
+        }));
+
+        // Criar uma nova planilha
+        const ws = XLSX.utils.json_to_sheet(dadosExcel);
+
+        // Criar um novo workbook e adicionar a planilha
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Pedidos Finalizados");
+
+        // Gerar arquivo Excel e criar link para download
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+        const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "Pedidos_Finalizados.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        alert("Arquivo Excel gerado com sucesso para download!");
+    } catch (error) {
+        console.error("Erro ao exportar para Excel:", error);
+        alert("Erro ao exportar os pedidos para o Excel: " + error.message);
+    }
+}
+
+function s2ab(s) {
+    const buf = new ArrayBuffer(s.length);
+    const view = new Uint8Array(buf);
+    for (let i = 0; i < s.length; i++) {
+        view[i] = s.charCodeAt(i) & 0xFF;
+    }
+    return buf;
+}
+
+</script>
+<script src="https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js"></script>
+<script>
+  // Inicialize o Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyAEdCf_ikseZkFnBisy8ai1qs2bAvViYcw",
+    authDomain: "teste-db9ff.firebaseapp.com",
+    databaseURL: "https://teste-db9ff-default-rtdb.firebaseio.com",
+    projectId: "teste-db9ff",
+    storageBucket: "teste-db9ff.firebasestorage.app",
+    messagingSenderId: "1083688132694",
+    appId: "1:1083688132694:web:25b3fe6b7c3851bd7c5bf7"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+</script>
+
 </body>
 </html>
